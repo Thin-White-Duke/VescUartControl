@@ -9,7 +9,7 @@
 // #include Config.h out in VescUart.h
 
 //Include libraries copied from VESC
- #include "VescUart.h"
+#include "VescUart.h"
 #include "datatypes.h"
 
 
@@ -18,11 +18,11 @@ unsigned long count;
 
 void setup() {
 	
-	//Setup UART port
-	Serial1.begin(115200);
+//Setup UART port
+SERIALIO.begin(115200);
 #ifdef DEBUG
 	//SEtup debug port
-	Serial.begin(115200);
+	DEBUGSERIAL.begin(115200);
 	#endif
 }
 
@@ -39,12 +39,12 @@ void loop() {
 	//}
 	
 	if (VescUartGetValue(measuredValues)) {
-		Serial.print("Loop: "); Serial.println(count++);
+		DEBUGSERIAL.print("Loop: "); DEBUGSERIAL.println(count++);
 		SerialPrint(measuredValues);
 	}
 	else
 	{
-		Serial.println("Failed to get data!");
+		DEBUGSERIAL.println("Failed to get data!");
 	}
 	
 }
