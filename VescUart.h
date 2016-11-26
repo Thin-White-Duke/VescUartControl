@@ -19,8 +19,6 @@ along with this program.If not, see <http://www.gnu.org/licenses/>.
 #ifndef _VESCUART_h
 #define _VESCUART_h
 
-#include "Config.h"
-
 /*TThis library was created on an Adruinio 2560 with different serial ports to have a better possibility
 to debug. The serial ports are define with #define:
 #define SERIALIO Serial1  		for the UART port to VESC
@@ -29,6 +27,12 @@ So you need here to define the right serial port for your arduino.
 If you want to use debug, uncomment DEBUGSERIAL and define a port.*/
 
 #ifndef _CONFIG_h
+#define _CONFIG_h
+
+//#include "Config.h"
+#define SERIALIO Serial1  
+#define DEBUGSERIAL Serial
+
 
 #ifdef __AVR_ATmega2560__ 
 #define SERIALIO Serial1  
@@ -36,10 +40,11 @@ If you want to use debug, uncomment DEBUGSERIAL and define a port.*/
 #endif
 
 #ifdef ARDUINO_AVR_NANO
-#define SERIALIO Serial  
+#define SERIALIO Serial
 #define DEBUGSERIAL Serial
 #endif
-#endif
+
+#endif // _CONFIG_H_
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "arduino.h"
@@ -93,5 +98,5 @@ void VescUartSetCurrentBrake(float brakeCurrent);
 void VescUartSetNunchukValues(remotePackage& data);
 
 
-#endif
+#endif // _VESCUART_h
 
