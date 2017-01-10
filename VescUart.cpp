@@ -24,8 +24,9 @@ bool ProcessReadPacket(uint8_t* message, bldcMeasure& values, int len);
 
 int ReceiveUartMessage(uint8_t* payloadReceived) {
 
-	//Messages <= 255 start with 2. 2nd byte is length
-	//Messages >255 start with 3. 2nd and 3rd byte is length combined with 1st >>8 and then &0xFF
+	// Messages <= 255 byte start with 2. 2nd byte is length
+	// Messages  > 255 byte start with 3. 2nd and 3rd byte is length using
+  //                      1st >>8 and then &0xFF currently not implemented
 	 
 	int counter = 0;
 	int endMessage = 256;
@@ -33,30 +34,25 @@ int ReceiveUartMessage(uint8_t* payloadReceived) {
 	uint8_t messageReceived[256];
 	int lenPayload = 0;
 
+	// Read message from serial stream
 	while (SERIALIO.available()) {
 
 		messageReceived[counter++] = SERIALIO.read();
 
-		if (counter == 2) {//case if state of 'counter' with last read 1
-
-			switch (messageReceived[0])
-			{
+		if (counter == 2) { // size identifier and payload length are read
+			switch (messageReceived[0]) {
 			case 2:
-				endMessage = messageReceived[1] + 5; //Payload size + 2 for sice + 3 for SRC and End.
+				endMessage = messageReceived[1] + 5; //Payload size + 2 start bytes + 3 end bytes
 				lenPayload = messageReceived[1];
 				break;
-			case 3:
-				//ToDo: Add Message Handling > 255 (starting with 3)
+			case 3: // ToDo: Add Message Handling > 255 (starting with 3)
 				break;
 			default:
 				break;
 			}
+		}
 
-		}
-		if (counter >= sizeof(messageReceived))
-		{
-			break;
-		}
+		if (counter >= sizeof(messageReceived)) break;
 
 		if (counter == endMessage && messageReceived[endMessage - 1] == 3) {//+1: Because of counter++ state of 'counter' with last read = "endMessage"
 			messageReceived[endMessage] = 0;
@@ -67,24 +63,24 @@ int ReceiveUartMessage(uint8_t* payloadReceived) {
 			break; //Exit if end of message is reached, even if there is still more data in buffer. 
 		}
 	}
+
+	// Unpack message
 	bool unpacked = false;
 	if (messageRead) {
 		unpacked = UnpackPayload(messageReceived, endMessage, payloadReceived, messageReceived[1]);
 	}
-	if (unpacked)
-	{
-		return lenPayload; //Message was read
-
+	if (unpacked) {
+		return lenPayload; // Message read
 	}
 	else {
-		return 0; //No Message Read
+		return 0;          // No message read
 	}
 }
 
 bool UnpackPayload(uint8_t* message, int lenMes, uint8_t* payload, int lenPay) {
 	uint16_t crcMessage = 0;
 	uint16_t crcPayload = 0;
-	//Rebuild src:
+	// Rebuild src:
 	crcMessage = message[lenMes - 3] << 8;
 	crcMessage &= 0xFF00;
 	crcMessage += message[lenMes - 2];
@@ -92,12 +88,12 @@ bool UnpackPayload(uint8_t* message, int lenMes, uint8_t* payload, int lenPay) {
 	DEBUGSERIAL.print("SRC received: "); DEBUGSERIAL.println(crcMessage);
 #endif // DEBUG
 
-	//Extract payload:
+	// Extract payload
 	memcpy(payload, &message[2], message[1]);
 
 	crcPayload = crc16(payload, message[1]);
 #ifdef DEBUG
-	DEBUGSERIAL.print("SRC calc: "); DEBUGSERIAL.println(crcPayload);
+	DEBUGSERIAL.print("SRC calculated: "); DEBUGSERIAL.println(crcPayload);
 #endif
 	if (crcPayload == crcMessage)
 	{
@@ -105,7 +101,6 @@ bool UnpackPayload(uint8_t* message, int lenMes, uint8_t* payload, int lenPay) {
 		DEBUGSERIAL.print("Received: "); SerialPrint(message, lenMes); DEBUGSERIAL.println();
 		DEBUGSERIAL.print("Payload :      "); SerialPrint(payload, message[1] - 1); DEBUGSERIAL.println();
 #endif // DEBUG
-
 		return true;
 	}
 	else
@@ -119,13 +114,11 @@ int PackSendPayload(uint8_t* payload, int lenPay) {
 	int count = 0;
 	uint8_t messageSend[256];
 
-	if (lenPay <= 256)
-	{
+	if (lenPay <= 256) {
 		messageSend[count++] = 2;
 		messageSend[count++] = lenPay;
 	}
-	else
-	{
+	else {
 		messageSend[count++] = 3;
 		messageSend[count++] = (uint8_t)(lenPay >> 8);
 		messageSend[count++] = (uint8_t)(lenPay & 0xFF);
@@ -136,18 +129,16 @@ int PackSendPayload(uint8_t* payload, int lenPay) {
 	messageSend[count++] = (uint8_t)(crcPayload >> 8);
 	messageSend[count++] = (uint8_t)(crcPayload & 0xFF);
 	messageSend[count++] = 3;
-	messageSend[count] = NULL;
+	messageSend[count]   = (int8_t)NULL;
 
 #ifdef DEBUG
 	DEBUGSERIAL.print("UART package send: "); SerialPrint(messageSend, count);
-
-#endif // DEBUG
+#endif
 
 	//Sending package
 	SERIALIO.write(messageSend, count);
 
-
-	//Returns number of send bytes
+	//Returns the number of bytes send
 	return count;
 }
 
@@ -191,11 +182,10 @@ bool VescUartGetValue(bldcMeasure& values) {
 	delay(100); //needed, otherwise data is not read
 	int lenPayload = ReceiveUartMessage(payload);
 	if (lenPayload > 55) {
-		bool read = ProcessReadPacket(payload, values, lenPayload); //returns true if sucessful
-		return read;
+		bool read = ProcessReadPacket(payload, values, lenPayload);
+		return read; // true if successful
 	}
-	else
-	{
+	else {
 		return false;
 	}
 }
@@ -216,7 +206,6 @@ void VescUartSetCurrentBrake(float brakeCurrent) {
 	payload[index++] = COMM_SET_CURRENT_BRAKE;
 	buffer_append_int32(payload, (int32_t)(brakeCurrent * 1000), &index);
 	PackSendPayload(payload, 5);
-
 }
 
 void VescUartSetNunchukValues(remotePackage& data) {
@@ -227,8 +216,7 @@ void VescUartSetNunchukValues(remotePackage& data) {
 	payload[ind++] = data.valYJoy;
 	buffer_append_bool(payload, data.valLowerButton, &ind);
 	buffer_append_bool(payload, data.valUpperButton, &ind);
-	//Acceleration Data. Not used, Int16 (2 byte)
-	payload[ind++] = 0;
+	payload[ind++] = 0; // Acceleration Data. Not used, int16 (2 byte)
 	payload[ind++] = 0;
 	payload[ind++] = 0;
 	payload[ind++] = 0;
@@ -237,35 +225,32 @@ void VescUartSetNunchukValues(remotePackage& data) {
 
 #ifdef DEBUG
 	DEBUGSERIAL.println("Data reached at VescUartSetNunchuckValues:");
-	DEBUGSERIAL.print("valXJoy = "); DEBUGSERIAL.print(data.valXJoy); DEBUGSERIAL.print(" valYJoy = "); DEBUGSERIAL.println(data.valYJoy);
-	DEBUGSERIAL.print("LowerButton = "); DEBUGSERIAL.print(data.valLowerButton); DEBUGSERIAL.print(" UpperButton = "); DEBUGSERIAL.println(data.valUpperButton);
+	DEBUGSERIAL.print("valXJoy = ");      DEBUGSERIAL.print(data.valXJoy);
+	DEBUGSERIAL.print(" valYJoy = ");     DEBUGSERIAL.println(data.valYJoy);
+	DEBUGSERIAL.print("LowerButton = ");  DEBUGSERIAL.print(data.valLowerButton);
+	DEBUGSERIAL.print(" UpperButton = "); DEBUGSERIAL.println(data.valUpperButton);
 #endif
 
 	PackSendPayload(payload, 11);
 }
 
 void SerialPrint(uint8_t* data, int len) {
-
-	//	DEBUGSERIAL.print("Data to display: "); DEBUGSERIAL.println(sizeof(data));
-
-	for (int i = 0; i <= len; i++)
-	{
+	//DEBUGSERIAL.print("Size of data to display: "); DEBUGSERIAL.println(sizeof(data));
+	for (int i = 0; i <= len; i++) {
 		DEBUGSERIAL.print(data[i]);
 		DEBUGSERIAL.print(" ");
 	}
 	DEBUGSERIAL.println("");
 }
 
-
 void SerialPrint(const bldcMeasure& values) {
 	DEBUGSERIAL.print("avgMotorCurrent: "); DEBUGSERIAL.println(values.avgMotorCurrent);
 	DEBUGSERIAL.print("avgInputCurrent: "); DEBUGSERIAL.println(values.avgInputCurrent);
-	DEBUGSERIAL.print("dutyCycleNow: "); DEBUGSERIAL.println(values.dutyCycleNow);
-	DEBUGSERIAL.print("rpm: "); DEBUGSERIAL.println(values.rpm);
-	DEBUGSERIAL.print("inputVoltage: "); DEBUGSERIAL.println(values.inpVoltage);
-	DEBUGSERIAL.print("ampHours: "); DEBUGSERIAL.println(values.ampHours);
+	DEBUGSERIAL.print("dutyCycleNow: ");    DEBUGSERIAL.println(values.dutyCycleNow);
+	DEBUGSERIAL.print("rpm: ");             DEBUGSERIAL.println(values.rpm);
+	DEBUGSERIAL.print("inputVoltage: ");    DEBUGSERIAL.println(values.inpVoltage);
+	DEBUGSERIAL.print("ampHours: ");        DEBUGSERIAL.println(values.ampHours);
 	DEBUGSERIAL.print("ampHoursCharges: "); DEBUGSERIAL.println(values.ampHoursCharged);
-	DEBUGSERIAL.print("tachometer: "); DEBUGSERIAL.println(values.tachometer);
-	DEBUGSERIAL.print("tachometerAbs: "); DEBUGSERIAL.println(values.tachometerAbs);
+	DEBUGSERIAL.print("tachometer: ");      DEBUGSERIAL.println(values.tachometer);
+	DEBUGSERIAL.print("tachometerAbs: ");   DEBUGSERIAL.println(values.tachometerAbs);
 }
-
