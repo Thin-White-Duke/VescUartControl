@@ -172,7 +172,7 @@ bool ProcessReadPacket(uint8_t* message, struct bldcMeasure& values, int len) {
 		values.avgInputCurrent		= buffer_get_float32(message, 100.0, &ind);
 		values.avgId				= buffer_get_float32(message, 1e2, &ind);
 		values.avgIq				= buffer_get_float32(message, 1e2, &ind);
-		values.dutyNow				= buffer_get_float16(message, 1000.0, &ind);
+		values.dutyCycleNow				= buffer_get_float16(message, 1000.0, &ind);
 		values.rpm					= buffer_get_float32(message, 1.0, &ind);
 		values.inpVoltage			= buffer_get_float16(message, 10.0, &ind);
 		values.ampHours				= buffer_get_float32(message, 10000.0, &ind);
@@ -272,7 +272,7 @@ void SerialPrint(const struct bldcMeasure& values) {
 	DEBUGSERIAL.print("avgInputCurrent:	"); DEBUGSERIAL.println(values.avgInputCurrent);
 	DEBUGSERIAL.print("avgId:			"); DEBUGSERIAL.println(values.avgId);
 	DEBUGSERIAL.print("avgIq:			"); DEBUGSERIAL.println(values.avgIq);
-	DEBUGSERIAL.print("dutyNow:			"); DEBUGSERIAL.println(values.dutyNow);
+	DEBUGSERIAL.print("dutyCycleNow:			"); DEBUGSERIAL.println(values.dutyCycleNow);
 	DEBUGSERIAL.print("rpm:				"); DEBUGSERIAL.println(values.rpm);
 	DEBUGSERIAL.print("inpVoltage:		"); DEBUGSERIAL.println(values.inpVoltage);
 	DEBUGSERIAL.print("ampHours:		"); DEBUGSERIAL.println(values.ampHours);
