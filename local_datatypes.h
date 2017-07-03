@@ -9,7 +9,7 @@ struct bldcMeasure {
 	float avgInputCurrent;
 	float avgId;
 	float avgIq;
-	float dutyNow;
+	float dutyCycleNow;
 	long rpm;
 	float inpVoltage;
 	float ampHours;
