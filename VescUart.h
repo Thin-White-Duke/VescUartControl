@@ -19,15 +19,12 @@ along with this program.If not, see <http://www.gnu.org/licenses/>.
 #ifndef _VESCUART_h
 #define _VESCUART_h
 
-
 //#include <Config.h>
 #include <HardwareSerial.h>
 
 void SetSerialPort(HardwareSerial* _serialPort1, HardwareSerial* _serialPort2, HardwareSerial* _serialPort3, HardwareSerial* _serialPort4);
 void SetSerialPort(HardwareSerial* _serialPort);
 void SetDebugSerialPort(HardwareSerial* _debugSerialPort);
-
-
 
 /*TThis library was created on an Adruinio 2560 with different serial ports to have a better possibility
 to debug. The serial ports are define with #define:
@@ -70,6 +67,7 @@ If you want to use debug, uncomment DEBUGSERIAL and define a port.*/
 
 ///SetSerialPort sets the serial to communicate with the VESC
 ///Multiple ports possible
+
 void SetSerialPort(HardwareSerial*  _serialPort1, HardwareSerial*  _serialPort2, HardwareSerial*  _serialPort3, HardwareSerial*  _serialPort4);
 void SetSerialPort(HardwareSerial* _serialPort);
 

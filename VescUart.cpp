@@ -46,7 +46,6 @@ void SetDebugSerialPort(HardwareSerial * _debugSerialPort)
 	debugSerialPort = _debugSerialPort;
 }
 
-
 //HardwareSerial *serial; ///@param num as integer with the serial port in use (0=Serial; 1=Serial1; 2=Serial2; 3=Serial3;)
 int ReceiveUartMessage(uint8_t* payloadReceived, int num) {
 
@@ -60,7 +59,6 @@ int ReceiveUartMessage(uint8_t* payloadReceived, int num) {
 	int lenPayload = 0;
 	HardwareSerial* serial;
 	
-
 	switch (num) {
 		case 0:
 			serial = serialPort1;
@@ -76,7 +74,6 @@ int ReceiveUartMessage(uint8_t* payloadReceived, int num) {
 			break;
 		default:
 			break;
-
 	}
 
 	while (serial->available()) {
@@ -84,9 +81,7 @@ int ReceiveUartMessage(uint8_t* payloadReceived, int num) {
 		messageReceived[counter++] = serial->read();
 
 		if (counter == 2) {//case if state of 'counter' with last read 1
-
-			switch (messageReceived[0])
-			{
+			switch (messageReceived[0]) {
 			case 2:
 				endMessage = messageReceived[1] + 5; //Payload size + 2 for sice + 3 for SRC and End.
 				lenPayload = messageReceived[1];
@@ -97,10 +92,8 @@ int ReceiveUartMessage(uint8_t* payloadReceived, int num) {
 			default:
 				break;
 			}
-
 		}
-		if (counter >= sizeof(messageReceived))
-		{
+		if (counter >= sizeof(messageReceived)) {
 			break;
 		}
 
@@ -117,10 +110,8 @@ int ReceiveUartMessage(uint8_t* payloadReceived, int num) {
 	if (messageRead) {
 		unpacked = UnpackPayload(messageReceived, endMessage, payloadReceived, messageReceived[1]);
 	}
-	if (unpacked)
-	{
+	if (unpacked) {
 		return lenPayload; //Message was read
-
 	}
 	else {
 		return 0; //No Message Read
@@ -130,51 +121,44 @@ int ReceiveUartMessage(uint8_t* payloadReceived, int num) {
 bool UnpackPayload(uint8_t* message, int lenMes, uint8_t* payload, int lenPay) {
 	uint16_t crcMessage = 0;
 	uint16_t crcPayload = 0;
-	//Rebuild src:
+
+	//Rebuild src
 	crcMessage = message[lenMes - 3] << 8;
 	crcMessage &= 0xFF00;
 	crcMessage += message[lenMes - 2];
-if(debugSerialPort!=NULL){
-	debugSerialPort->print("SRC received: "); debugSerialPort->println(crcMessage);
-} // DEBUG
+	if(debugSerialPort!=NULL) {
+	  debugSerialPort->print("SRC received:\t\t"); debugSerialPort->println(crcMessage);
+	} // DEBUG
 
 	//Extract payload:
 	memcpy(payload, &message[2], message[1]);
 
 	crcPayload = crc16(payload, message[1]);
-if(debugSerialPort!=NULL){
-	debugSerialPort->print("SRC calc: "); debugSerialPort->println(crcPayload);
-}
-	if (crcPayload == crcMessage)
-	{
-if(debugSerialPort!=NULL){
-		debugSerialPort->print("Received: "); SerialPrint(message, lenMes); debugSerialPort->println();
-		debugSerialPort->print("Payload :      "); SerialPrint(payload, message[1] - 1); debugSerialPort->println();
-} // DEBUG
-
+	if(debugSerialPort!=NULL) {
+	  debugSerialPort->print("SRC calc:\t\t\t\t"); debugSerialPort->println(crcPayload);
+	}
+	if (crcPayload == crcMessage) {
+	  if(debugSerialPort!=NULL){
+	    debugSerialPort->print("Received:\t\t"); SerialPrint(message, lenMes); //debugSerialPort->println();
+	    debugSerialPort->print("Payload:\t\t"); SerialPrint(payload, message[1] - 1); debugSerialPort->println();
+	  } // DEBUG
 		return true;
 	}
-	else
-	{
+	else {
 		return false;
 	}
 }
-
-
-
 
 int PackSendPayload(uint8_t* payload, int lenPay, int num) {
 	uint16_t crcPayload = crc16(payload, lenPay);
 	int count = 0;
 	uint8_t messageSend[256];
 
-	if (lenPay <= 256)
-	{
+	if (lenPay <= 256) {
 		messageSend[count++] = 2;
 		messageSend[count++] = lenPay;
 	}
-	else
-	{
+	else {
 		messageSend[count++] = 3;
 		messageSend[count++] = (uint8_t)(lenPay >> 8);
 		messageSend[count++] = (uint8_t)(lenPay & 0xFF);
@@ -187,14 +171,11 @@ int PackSendPayload(uint8_t* payload, int lenPay, int num) {
 	messageSend[count++] = 3;
 	messageSend[count] = NULL;
 
-if(debugSerialPort!=NULL){
-	debugSerialPort->print("UART package send: "); SerialPrint(messageSend, count);
-
-} // DEBUG
-
+	if(debugSerialPort!=NULL) {
+	  debugSerialPort->print("UART package send:\t"); SerialPrint(messageSend, count);
+	} // DEBUG
 
 	HardwareSerial *serial;
-
 	switch (num) {
 		case 0:
 			serial=serialPort1;
@@ -215,7 +196,6 @@ if(debugSerialPort!=NULL){
 	//Sending package
 	serial->write(messageSend, count);
 
-
 	//Returns number of send bytes
 	return count;
 }
@@ -229,33 +209,30 @@ bool ProcessReadPacket(uint8_t* message, struct bldcMeasure& values, int len) {
 	message++;//Eliminates the message id
 	len--;
 
-	switch (packetId)
-	{
-
-	case COMM_GET_VALUES:
-		values.tempFetFiltered		= buffer_get_float16(message, 1e1, &ind);
-		values.tempMotorFiltered	= buffer_get_float16(message, 1e1, &ind);
-		values.avgMotorCurrent		= buffer_get_float32(message, 100.0, &ind);
-		values.avgInputCurrent		= buffer_get_float32(message, 100.0, &ind);
-		values.avgId				= buffer_get_float32(message, 1e2, &ind);
-		values.avgIq				= buffer_get_float32(message, 1e2, &ind);
-		values.dutyNow				= buffer_get_float16(message, 1000.0, &ind);
-		values.rpm					= buffer_get_float32(message, 1.0, &ind);
-		values.inpVoltage			= buffer_get_float16(message, 10.0, &ind);
-		values.ampHours				= buffer_get_float32(message, 10000.0, &ind);
-		values.ampHoursCharged		= buffer_get_float32(message, 10000.0, &ind);
-		values.wattHours			= buffer_get_float32(message, 1e4, &ind);
-		values.watthoursCharged		= buffer_get_float32(message, 1e4, &ind);
-		values.tachometer			= buffer_get_int32(message, &ind);
-		values.tachometerAbs		= buffer_get_int32(message, &ind);
-		values.faultCode			= message[ind];
-		return true;
-		break;
-	default:
-		return false;
-		break;
+	switch (packetId) {
+	  case COMM_GET_VALUES:
+	    values.tempFetFiltered		= buffer_get_float16(message, 1e1, &ind);
+	    values.tempMotorFiltered	= buffer_get_float16(message, 1e1, &ind);
+	    values.avgMotorCurrent		= buffer_get_float32(message, 100.0, &ind);
+	    values.avgInputCurrent		= buffer_get_float32(message, 100.0, &ind);
+	    values.avgId				      = buffer_get_float32(message, 1e2, &ind);
+	    values.avgIq				      = buffer_get_float32(message, 1e2, &ind);
+	    values.dutyNow				    = buffer_get_float16(message, 1000.0, &ind);
+	    values.rpm					      = buffer_get_float32(message, 1.0, &ind);
+	    values.inpVoltage			    = buffer_get_float16(message, 10.0, &ind);
+	    values.ampHours				    = buffer_get_float32(message, 10000.0, &ind);
+	    values.ampHoursCharged		= buffer_get_float32(message, 10000.0, &ind);
+	    values.wattHours			    = buffer_get_float32(message, 1e4, &ind);
+	    values.watthoursCharged		= buffer_get_float32(message, 1e4, &ind);
+	    values.tachometer			    = buffer_get_int32(message, &ind);
+	    values.tachometerAbs		  = buffer_get_int32(message, &ind);
+	    values.faultCode			    = message[ind];
+	    return true;
+	    break;
+	  default:
+	    return false;
+	    break;
 	}
-
 }
 
 bool VescUartGetValue(bldcMeasure& values, int num) {
@@ -268,11 +245,11 @@ bool VescUartGetValue(bldcMeasure& values, int num) {
 		bool read = ProcessReadPacket(payload, values, lenPayload); //returns true if sucessful
 		return read;
 	}
-	else
-	{
+	else {
 		return false;
 	}
 }
+
 bool VescUartGetValue(bldcMeasure& values) {
 	return VescUartGetValue(values, 0);
 }
@@ -285,7 +262,8 @@ void VescUartSetCurrent(float current, int num) {
 	buffer_append_int32(payload, (int32_t)(current * 1000), &index);
 	PackSendPayload(payload, 5, num);
 }
-void VescUartSetCurrent(float current){
+
+void VescUartSetCurrent(float current) {
 	VescUartSetCurrent(current, 0);
 }
 
@@ -297,6 +275,7 @@ void VescUartSetPosition(float position, int num) {
 	buffer_append_int32(payload, (int32_t)(position * 1000000.0), &index);
 	PackSendPayload(payload, 5, num);
 }
+
 void VescUartSetPosition(float position) {
 	VescUartSetPosition(position, 0);
 }
@@ -309,10 +288,10 @@ void VescUartSetDuty(float duty, int num) {
 	buffer_append_int32(payload, (int32_t)(duty * 100000), &index);
 	PackSendPayload(payload, 5, num);
 }
+
 void VescUartSetDuty(float duty) {
 	VescUartSetDuty(duty, 0);
 }
-
 
 void VescUartSetRPM(float rpm, int num) {
 	int32_t index = 0;
@@ -322,6 +301,7 @@ void VescUartSetRPM(float rpm, int num) {
 	buffer_append_int32(payload, (int32_t)(rpm), &index);
 	PackSendPayload(payload, 5, num);
 }
+
 void VescUartSetRPM(float rpm) {
 	VescUartSetRPM(rpm, 0);
 }
@@ -334,10 +314,10 @@ void VescUartSetCurrentBrake(float brakeCurrent, int num) {
 	buffer_append_int32(payload, (int32_t)(brakeCurrent * 1000), &index);
 	PackSendPayload(payload, 5, num);
 }
+
 void VescUartSetCurrentBrake(float brakeCurrent) {
 	VescUartSetCurrentBrake(brakeCurrent, 0);
 }
-
 
 void VescUartSetNunchukValues(remotePackage& data, int num) {
 	int32_t ind = 0;
@@ -355,47 +335,40 @@ void VescUartSetNunchukValues(remotePackage& data, int num) {
 	payload[ind++] = 0;
 	payload[ind++] = 0;
 
-if(debugSerialPort!=NULL){
-	debugSerialPort->println("Data reached at VescUartSetNunchuckValues:");
-	debugSerialPort->print("valXJoy = "); debugSerialPort->print(data.valXJoy); debugSerialPort->print(" valYJoy = "); debugSerialPort->println(data.valYJoy);
-	debugSerialPort->print("LowerButton = "); debugSerialPort->print(data.valLowerButton); debugSerialPort->print(" UpperButton = "); debugSerialPort->println(data.valUpperButton);
-}
-
+	if(debugSerialPort!=NULL) {
+	  debugSerialPort->println("Data reached at VescUartSetNunchuckValues:");
+	  debugSerialPort->print("valXJoy = "); debugSerialPort->print(data.valXJoy); debugSerialPort->print(" valYJoy = "); debugSerialPort->println(data.valYJoy);
+	  debugSerialPort->print("LowerButton = "); debugSerialPort->print(data.valLowerButton); debugSerialPort->print(" UpperButton = "); debugSerialPort->println(data.valUpperButton);
+	}
 	PackSendPayload(payload, 11, num);
 }
+
 void VescUartSetNunchukValues(remotePackage& data) {
 	VescUartSetNunchukValues(data, 0);
 }
 
-
 void SerialPrint(uint8_t* data, int len) {
-
 	//	debugSerialPort->print("Data to display: "); debugSerialPort->println(sizeof(data));
-
-	for (int i = 0; i <= len; i++)
-	{
+	for (int i = 0; i <= len; i++) {
 		debugSerialPort->print(data[i]);
 		debugSerialPort->print(" ");
 	}
 	debugSerialPort->println("");
 }
 
-
 void SerialPrint(const struct bldcMeasure& values) {
-	debugSerialPort->print("tempFetFiltered:	"); debugSerialPort->println(values.tempFetFiltered);
-	debugSerialPort->print("tempMotorFiltered:"); debugSerialPort->println(values.tempMotorFiltered);
-	debugSerialPort->print("avgMotorCurrent:	"); debugSerialPort->println(values.avgMotorCurrent);
-	debugSerialPort->print("avgInputCurrent:	"); debugSerialPort->println(values.avgInputCurrent);
-	debugSerialPort->print("avgId:			"); debugSerialPort->println(values.avgId);
-	debugSerialPort->print("avgIq:			"); debugSerialPort->println(values.avgIq);
-	debugSerialPort->print("dutyNow:			"); debugSerialPort->println(values.dutyNow);
-	debugSerialPort->print("rpm:				"); debugSerialPort->println(values.rpm);
-	debugSerialPort->print("inpVoltage:		"); debugSerialPort->println(values.inpVoltage);
-	debugSerialPort->print("ampHours:		"); debugSerialPort->println(values.ampHours);
-	debugSerialPort->print("ampHoursCharged:	"); debugSerialPort->println(values.ampHoursCharged);
-	debugSerialPort->print("tachometer:		"); debugSerialPort->println(values.tachometer);
-	debugSerialPort->print("tachometerAbs:	"); debugSerialPort->println(values.tachometerAbs);
-	debugSerialPort->print("faultCode:		"); debugSerialPort->println(values.faultCode);
-
-	
+	debugSerialPort->print("tempFetFiltered:\t\t\t"); debugSerialPort->println(values.tempFetFiltered);
+	debugSerialPort->print("tempMotorFiltered:\t\t"); debugSerialPort->println(values.tempMotorFiltered);
+	debugSerialPort->print("avgMotorCurrent:\t\t"); debugSerialPort->println(values.avgMotorCurrent);
+	debugSerialPort->print("avgInputCurrent:\t\t\t"); debugSerialPort->println(values.avgInputCurrent);
+	debugSerialPort->print("avgId:\t\t\t\t\t\t\t"); debugSerialPort->println(values.avgId);
+	debugSerialPort->print("avgIq:\t\t\t\t\t\t\t"); debugSerialPort->println(values.avgIq);
+	debugSerialPort->print("dutyNow:\t\t\t\t\t\t"); debugSerialPort->println(values.dutyNow);
+	debugSerialPort->print("rpm:\t\t\t\t\t\t\t\t"); debugSerialPort->println(values.rpm);
+	debugSerialPort->print("inpVoltage:\t\t\t\t\t"); debugSerialPort->println(values.inpVoltage);
+	debugSerialPort->print("ampHours:\t\t\t\t\t"); debugSerialPort->println(values.ampHours);
+	debugSerialPort->print("ampHoursCharged:\t\t"); debugSerialPort->println(values.ampHoursCharged);
+	debugSerialPort->print("tachometer:\t\t\t\t\t"); debugSerialPort->println(values.tachometer);
+	debugSerialPort->print("tachometerAbs:\t\t\t"); debugSerialPort->println(values.tachometerAbs);
+	debugSerialPort->print("faultCode:\t\t\t\t\t"); debugSerialPort->println(values.faultCode);
 }
