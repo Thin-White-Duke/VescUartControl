@@ -99,9 +99,11 @@ int ReceiveUartMessage(uint8_t* payloadReceived, int num) {
 
 		if (counter == endMessage && messageReceived[endMessage - 1] == 3) {//+1: Because of counter++ state of 'counter' with last read = "endMessage"
 			messageReceived[endMessage] = 0;
+#ifdef DEGUB
 			if (debugSerialPort != NULL) {
 				debugSerialPort->println("End of message reached!");
 			}
+#endif
 			messageRead = true;
 			break; //Exit if end of message is reached, even if there is still more data in buffer.
 		}
@@ -126,22 +128,28 @@ bool UnpackPayload(uint8_t* message, int lenMes, uint8_t* payload, int lenPay) {
 	crcMessage = message[lenMes - 3] << 8;
 	crcMessage &= 0xFF00;
 	crcMessage += message[lenMes - 2];
+#ifdef DEBUG
 	if(debugSerialPort!=NULL) {
 	  debugSerialPort->print("SRC received:\t\t"); debugSerialPort->println(crcMessage);
 	} // DEBUG
+#endif
 
 	//Extract payload:
 	memcpy(payload, &message[2], message[1]);
 
 	crcPayload = crc16(payload, message[1]);
+#ifdef DEBUG
 	if(debugSerialPort!=NULL) {
 	  debugSerialPort->print("SRC calc:\t\t\t\t"); debugSerialPort->println(crcPayload);
 	}
+#endif
 	if (crcPayload == crcMessage) {
+#ifdef DEBUG
 	  if(debugSerialPort!=NULL){
 	    debugSerialPort->print("Received:\t\t"); SerialPrint(message, lenMes); //debugSerialPort->println();
 	    debugSerialPort->print("Payload:\t\t"); SerialPrint(payload, message[1] - 1); debugSerialPort->println();
 	  } // DEBUG
+#endif
 		return true;
 	}
 	else {
@@ -171,9 +179,11 @@ int PackSendPayload(uint8_t* payload, int lenPay, int num) {
 	messageSend[count++] = 3;
 	messageSend[count] = NULL;
 
+#ifdef DEBUG
 	if(debugSerialPort!=NULL) {
 	  debugSerialPort->print("UART package send:\t"); SerialPrint(messageSend, count);
 	} // DEBUG
+#endif
 
 	HardwareSerial *serial;
 	switch (num) {
